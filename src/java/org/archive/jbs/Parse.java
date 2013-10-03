@@ -16,13 +16,19 @@
  */
 package org.archive.jbs;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -40,24 +46,21 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.parse.Outlink;
 //import org.apache.nutch.parse.Parse;  // Don't import due to name conflict.
 import org.apache.nutch.parse.ParseData;
 import org.apache.nutch.parse.ParseResult;
 import org.apache.nutch.parse.ParseStatus;
-import org.apache.nutch.parse.ParseText;
 import org.apache.nutch.parse.ParseUtil;
 import org.apache.nutch.protocol.Content;
-
 import org.archive.io.warc.WARCConstants;
-
 import org.archive.jbs.arc.ArcReader;
 import org.archive.jbs.arc.ArchiveRecordProxy;
-
 import org.archive.jbs.util.FilenameInputFormat;
 import org.archive.jbs.util.PerMapOutputFormat;
+
+import de.l3s.boilerpipe.BoilerpipeProcessingException;
 
 /**
  * Parse the contents of a (W)ARC file, output
@@ -181,7 +184,14 @@ public class Parse extends Configured implements Tool
           LOG.info( "Finish: "  + path );
         }
     }
-    
+
+	final transient private ExecutorService TIMEOUT_EXECUTOR = Executors.newSingleThreadExecutor();
+    protected <T> T runWithTimeout(long timeout, TimeUnit timeUnit,
+			Callable<T> callable) throws InterruptedException, ExecutionException, TimeoutException {
+		Future<T> future = TIMEOUT_EXECUTOR.submit(callable);
+		return future.get(timeout, timeUnit);
+	}
+
     /**
      * 
      */
@@ -223,10 +233,20 @@ public class Parse extends Configured implements Tool
                 {
                   if ( jobConf.getBoolean( "jbs.parse.boilerpipe", true ) )
                     {
-                      // BoilerPipe!
-                      contentMetadata.set( "boiled", de.l3s.boilerpipe.extractors.DefaultExtractor.INSTANCE.getText( new org.xml.sax.InputSource( new java.io.ByteArrayInputStream( record.getHttpResponseBody() ) ) ) );
+                      // BoilerPipe! 
+                	  final org.xml.sax.InputSource inputSource = new org.xml.sax.InputSource( new java.io.ByteArrayInputStream( record.getHttpResponseBody() ) );
+                	  String boiled = runWithTimeout(60, TimeUnit.SECONDS, new Callable<String>() {
+                		  @Override
+                		  public String call() throws BoilerpipeProcessingException {
+                			  return de.l3s.boilerpipe.extractors.DefaultExtractor.INSTANCE.getText( inputSource );						}
+
+                	  });
+                	  contentMetadata.set( "boiled", boiled );
                     }
                 }
+              catch (TimeoutException e) {
+            	  LOG.warn("Timeout boilerpiping " + record.getUrl());
+              }
               catch ( Exception e ) 
                 { 
                   LOG.warn( "Error boilerpiping: " + record.getUrl( ) ); 
