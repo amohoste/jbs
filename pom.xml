@@ -102,4 +102,12 @@
 			</plugin>
                 </plugins>
         </build>
+
+	<distributionManagement>
+		<repository>
+			<id>repository</id>
+			<!--Pass as command-line system property to maven-->
+			<url>${repository.url}</url>
+		</repository>
+	</distributionManagement>
 </project>
