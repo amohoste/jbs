@@ -16,12 +16,13 @@
  */
 package org.archive.jbs;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -39,19 +40,24 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
 import org.apache.nutch.metadata.Metadata;
 import org.apache.nutch.parse.Outlink;
+//import org.apache.nutch.parse.Parse;  // Don't import due to name conflict.
 import org.apache.nutch.parse.ParseData;
 import org.apache.nutch.parse.ParseResult;
 import org.apache.nutch.parse.ParseStatus;
+import org.apache.nutch.parse.ParseText;
 import org.apache.nutch.parse.ParseUtil;
 import org.apache.nutch.protocol.Content;
-import org.archive.format.warc.WARCConstants;
+
+import org.archive.io.warc.WARCConstants;
+
 import org.archive.jbs.arc.ArcReader;
 import org.archive.jbs.arc.ArchiveRecordProxy;
+
 import org.archive.jbs.util.FilenameInputFormat;
 import org.archive.jbs.util.PerMapOutputFormat;
-//import org.apache.nutch.parse.Parse;  // Don't import due to name conflict.
 
 /**
  * Parse the contents of a (W)ARC file, output
@@ -103,7 +109,7 @@ public class Parse extends Configured implements Tool
           for ( ArchiveRecordProxy record : reader )
             {
               // If this is an HTTP response record, do all the parsing and stuff.
-              if ( WARCConstants.WARCRecordType.response.equals( record.getWARCRecordType() ) )
+              if ( WARCConstants.WARCRecordType.RESPONSE.toString().equals( record.getWARCRecordType() ) )
                 {
                   if ( WARCConstants.HTTP_RESPONSE_MIMETYPE.equals( record.getWARCContentType() ) )
                     {
@@ -116,7 +122,7 @@ public class Parse extends Configured implements Tool
                       LOG.info( "Skip response: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
                     }
                 }
-              else if ( WARCConstants.WARCRecordType.resource.equals( record.getWARCRecordType() ) )
+              else if ( WARCConstants.WARCRecordType.RESOURCE.toString().equals( record.getWARCRecordType() ) )
                 {
                   // We only care about "ftp://" resource records.  It's possible that the ArchiveRecordProxy will
                   // pass us resource records other than ftp, so we filter out non-ftp ones here.
@@ -137,7 +143,7 @@ public class Parse extends Configured implements Tool
                       LOG.info( "Skip resource: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
                     }
                 }
-              else if ( WARCConstants.WARCRecordType.revisit.equals( record.getWARCRecordType() ) )
+              else if ( WARCConstants.WARCRecordType.REVISIT.toString().equals( record.getWARCRecordType() ) )
                 {
                   // If this is a revisit record, just create a JSON
                   // Document with the relevant info.  No parsing or
