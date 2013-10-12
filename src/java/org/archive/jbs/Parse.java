@@ -185,17 +185,32 @@ public class Parse extends Configured implements Tool
         }
     }
 
-	final transient private ExecutorService TIMEOUT_EXECUTOR = Executors.newSingleThreadExecutor();
-    protected <T> T runWithTimeout(long timeout, TimeUnit timeUnit,
-			Callable<T> callable) throws InterruptedException, ExecutionException, TimeoutException {
-		Future<T> future = TIMEOUT_EXECUTOR.submit(callable);
-		return future.get(timeout, timeUnit);
-	}
+    transient private ExecutorService timeoutExecutor = Executors.newSingleThreadExecutor();
+    private <T> T runWithTimeout(long timeout, TimeUnit timeUnit,
+            Callable<T> callable) throws InterruptedException, ExecutionException, TimeoutException {
+        Future<T> future = timeoutExecutor.submit(callable);
+        try {
+            return future.get(timeout, timeUnit);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            try {
+                Thread.sleep(2000); // give it 2 seconds to try to cancel
+            } catch (InterruptedException f) {
+            }
+            // We don't actually expect the cancel to work since the parsing
+            // library doesn't respond to interrupt. If we try to reuse this
+            // executor it will keep timing out waiting for the job ahead of
+            // it to finish. Create a new executor instead.
+            timeoutExecutor.shutdownNow();
+            timeoutExecutor = Executors.newSingleThreadExecutor();
+            throw e;
+        }
+    }
 
     /**
      * 
      */
-    private void parseRecord( ArchiveRecordProxy record, OutputCollector output )
+    private void parseRecord( final ArchiveRecordProxy record, OutputCollector output )
       throws IOException
     {
       String key = record.getUrl() + " " + record.getDigest( );
@@ -230,19 +245,22 @@ public class Parse extends Configured implements Tool
                 }
               
               try
-                {
+              {
                   if ( jobConf.getBoolean( "jbs.parse.boilerpipe", true ) )
-                    {
+                  {
                       // BoilerPipe! 
-                	  final org.xml.sax.InputSource inputSource = new org.xml.sax.InputSource( new java.io.ByteArrayInputStream( record.getHttpResponseBody() ) );
-                	  String boiled = runWithTimeout(60, TimeUnit.SECONDS, new Callable<String>() {
-                		  @Override
-                		  public String call() throws BoilerpipeProcessingException {
-                			  return de.l3s.boilerpipe.extractors.DefaultExtractor.INSTANCE.getText( inputSource );						}
+                      final org.xml.sax.InputSource inputSource = new org.xml.sax.InputSource( new java.io.ByteArrayInputStream( record.getHttpResponseBody() ) );
+                      String boiled = runWithTimeout(60, TimeUnit.SECONDS, new Callable<String>() {
+                          // dummy var to help in debugging so we can see what url the thing is spinning on
+                          private ArchiveRecordProxy rec = record; 
 
-                	  });
-                	  contentMetadata.set( "boiled", boiled );
-                    }
+                          @Override
+                          public String call() throws BoilerpipeProcessingException {
+                              return de.l3s.boilerpipe.extractors.DefaultExtractor.INSTANCE.getText( inputSource );						}
+
+                      });
+                      contentMetadata.set( "boiled", boiled );
+                  }
                 }
               catch (TimeoutException e) {
             	  LOG.warn("Timeout boilerpiping " + record.getUrl());
