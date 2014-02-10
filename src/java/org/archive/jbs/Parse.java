@@ -112,7 +112,7 @@ public class Parse extends Configured implements Tool
           for ( ArchiveRecordProxy record : reader )
             {
               // If this is an HTTP response record, do all the parsing and stuff.
-              if ( WARCConstants.WARCRecordType.RESPONSE.toString().equals( record.getWARCRecordType() ) )
+              if ( WARCConstants.WARCRecordType.response.toString().equals( record.getWARCRecordType() ) )
                 {
                   if ( WARCConstants.HTTP_RESPONSE_MIMETYPE.equals( record.getWARCContentType() ) )
                     {
@@ -125,7 +125,7 @@ public class Parse extends Configured implements Tool
                       LOG.info( "Skip response: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
                     }
                 }
-              else if ( WARCConstants.WARCRecordType.RESOURCE.toString().equals( record.getWARCRecordType() ) )
+              else if ( WARCConstants.WARCRecordType.resource.toString().equals( record.getWARCRecordType() ) )
                 {
                   // We only care about "ftp://" resource records.  It's possible that the ArchiveRecordProxy will
                   // pass us resource records other than ftp, so we filter out non-ftp ones here.
@@ -146,7 +146,7 @@ public class Parse extends Configured implements Tool
                       LOG.info( "Skip resource: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
                     }
                 }
-              else if ( WARCConstants.WARCRecordType.REVISIT.toString().equals( record.getWARCRecordType() ) )
+              else if ( WARCConstants.WARCRecordType.revisit.toString().equals( record.getWARCRecordType() ) )
                 {
                   // If this is a revisit record, just create a JSON
                   // Document with the relevant info.  No parsing or
