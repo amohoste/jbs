@@ -17,22 +17,17 @@
 
 package org.archive.jbs.arc;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
 
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpParser;
+import org.apache.commons.httpclient.StatusLine;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.ArchiveRecordHeader;
-import org.archive.io.arc.ARCConstants;
-import org.archive.io.arc.ARCReader;
 import org.archive.io.arc.ARCRecord;
 import org.archive.io.arc.ARCRecordMetaData;
 import org.archive.io.warc.WARCConstants;
 import org.archive.io.warc.WARCRecord;
-
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.StatusLine;
-import org.apache.commons.httpclient.HttpParser;
-import org.apache.commons.httpclient.HttpException;
 
 /**
  * Proxy object for ARC and WARC records.  It reads the headers from
@@ -82,7 +77,7 @@ public class ArchiveRecordProxy
 
     if ( url.startsWith( "http" ) )
       {
-        this.warcRecordType  = WARCConstants.WARCRecordType.RESPONSE.toString();
+        this.warcRecordType  = WARCConstants.WARCRecordType.response.toString();
         this.warcContentType = WARCConstants.HTTP_RESPONSE_MIMETYPE;
 
         // Move the file position past the HTTP headers to the start of
@@ -101,17 +96,17 @@ public class ArchiveRecordProxy
       }
     else if ( url.startsWith( "filedesc" ) )
       {
-        this.warcRecordType  = WARCConstants.WARCRecordType.WARCINFO.toString();
+        this.warcRecordType  = WARCConstants.WARCRecordType.warcinfo.toString();
         this.warcContentType = "application/arcinfo";
       }
     else if ( url.startsWith( "dns:" ) )
       {
-        this.warcRecordType  = WARCConstants.WARCRecordType.RESPONSE.toString();
+        this.warcRecordType  = WARCConstants.WARCRecordType.response.toString();
         this.warcContentType = "text/dns";
       }
     else if ( url.startsWith( "ftp:" ) )
       {
-        this.warcRecordType  = WARCConstants.WARCRecordType.RESOURCE.toString();
+        this.warcRecordType  = WARCConstants.WARCRecordType.resource.toString();
 
         // The mime-type in the ARC header tells us whether this is part of the 
         // control conversation or the actual downloaded file.
@@ -217,7 +212,7 @@ public class ArchiveRecordProxy
 
         this.body = readBytes( warc, this.length, sizeLimit );
       }
-    else if ( WARCConstants.WARCRecordType.RESOURCE.toString().equals( this.warcRecordType ) 
+    else if ( WARCConstants.WARCRecordType.resource.toString().equals( this.warcRecordType ) 
               &&
               // We check for "ftp://" here because we don't want to waste the time to copy the
               // bytes for resource record types we don't care about.  If we want to pass along
