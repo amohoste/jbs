@@ -116,14 +116,14 @@ public class Parse extends Configured implements Tool
                 {
                   if ( WARCConstants.HTTP_RESPONSE_MIMETYPE.equals( record.getWARCContentType() ) )
                     {
-                      LOG.info( "Process response: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
+                      // LOG.info( "Process response: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
                       
                       parseRecord( record, output );
                     }
-                  else
+                  /* else
                     {
                       LOG.info( "Skip response: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
-                    }
+                    }*/
                 }
               else if ( WARCConstants.WARCRecordType.resource.toString().equals( record.getWARCRecordType() ) )
                 {
@@ -137,21 +137,21 @@ public class Parse extends Configured implements Tool
                        "application/octet-stream".equals( record.getWARCContentType() )
                      )
                     {
-                      LOG.info( "Process resource: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
+                      // LOG.info( "Process resource: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
 
                       parseRecord( record, output );
                     }
-                  else
+                  /*else
                     {
                       LOG.info( "Skip resource: " + record.getUrl() + " response-type:" + record.getWARCContentType() + " date: " + record.getDate() );
-                    }
+                    }*/
                 }
               else if ( WARCConstants.WARCRecordType.revisit.toString().equals( record.getWARCRecordType() ) )
                 {
                   // If this is a revisit record, just create a JSON
                   // Document with the relevant info.  No parsing or
                   // anything needed.
-                  LOG.info( "Process revisit: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
+                  // LOG.info( "Process revisit: " + record.getUrl() + " digest:" + record.getDigest() + " date: " + record.getDate() );
 
                   Text docKey = new Text( record.getUrl() + " " + record.getDigest( ) );
 
@@ -162,10 +162,10 @@ public class Parse extends Configured implements Tool
                   
                   output.collect( docKey, new Text( doc.toString() ) );
                  }
-              else 
+              /* else 
                 {
                   LOG.info( "Skip record: " + record.getUrl() + " record-type:" + record.getWARCRecordType() + " date: " + record.getDate() );
-                }
+                } */
               
               reporter.progress();
             }
